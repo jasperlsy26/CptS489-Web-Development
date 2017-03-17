@@ -1,0 +1,566 @@
+<html>
+<title>Sudoku Units Tests v1.3</title>
+<script src="Sudoku9x9.js"></script>
+<script>
+function AllTests()
+{
+    var resultsDIV = document.getElementById("resultsDIV");
+    resultsDIV.innerHTML = "";
+    
+    var topMiddleBottomStrs = ["Top", "Middle", "Bottom"];
+    var leftMiddleRightStrs = ["Left", "Middle", "Right"];
+    var nums = null, cells = null, box = null;
+    var ok = true;
+    var clr = "black";
+    var passCount = 0;
+    
+    // Do tests on the SudokuCell "class"
+    TestSudokuCell(resultsDIV);
+    
+    resultsDIV.innerHTML += "<br>General data storage and basic logic tests:<br>";
+    
+    // Construct various test cases for finalized rows and columns in 3x3 boxes
+    // Each test array is declared as:
+    // [cellValuesArr, finalizedRowsArr, finalizedColsArr]
+    var testCases = [
+        [[0,0,0,4,5,6,7,8,9], [false, true, true], [false, false, false]],
+        [[1,0,0,4,5,6,7,8,9], [false, true, true], [true, false, false]],
+        [[0,2,0,4,5,6,7,8,9], [false, true, true], [false, true, false]],
+        [[0,0,3,4,5,6,7,8,9], [false, true, true], [false, false, true]],
+        [[1,0,3,4,5,6,7,8,9], [false, true, true], [true, false, true]],
+        [[0,2,3,4,5,6,7,8,9], [false, true, true], [false, true, true]],
+        [[1,2,0,4,5,6,7,8,9], [false, true, true], [true, true, false]],
+        [[1,2,3,4,5,6,0,0,0], [true, true, false], [false, false, false]],
+        [[1,2,3,4,5,6,7,0,0], [true, true, false], [true, false, false]],
+        [[1,2,3,4,5,6,0,8,0], [true, true, false], [false, true, false]],
+        [[1,2,3,4,5,6,0,0,9], [true, true, false], [false, false, true]]
+    ];
+    for (var i = 0; i < testCases.length; i++)
+    {
+        nums = testCases[i][0];
+        cells = NumsToCells(nums);
+        var rowAnswers = testCases[i][1];
+        var colAnswers = testCases[i][2];
+        box = new Sudoku3x3Block(cells);
+        if (box.isRowFinalized(0) == rowAnswers[0] &&
+            box.isRowFinalized(1) == rowAnswers[1] &&
+            box.isRowFinalized(2) == rowAnswers[2])
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: 3x3 box with certain rows finalized [" +
+                rowAnswers + "]</font><br>";
+            passCount++;
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: 3x3 box with certain rows finalized</font><br>";
+            for (var j = 0; j < 3; j++)
+            {
+                resultsDIV.innerHTML += ("<font color='red'>&nbsp;&nbsp;" + topMiddleBottomStrs[j] +
+                                         " row finalized? " + box.isRowFinalized(j) + "(expected " +
+                                         rowAnswers[j] + ")</font><br>");
+            }
+        }
+        
+        // Now test the columns as well
+        if (box.isColumnFinalized(0) == colAnswers[0] &&
+            box.isColumnFinalized(1) == colAnswers[1] &&
+            box.isColumnFinalized(2) == colAnswers[2])
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: 3x3 box with certain columns finalized [" +
+                colAnswers + "]</font><br>";
+            passCount++;
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: 3x3 box with certain columns finalized</font><br>";
+            for (var j = 0; j < 3; j++)
+            {
+                resultsDIV.innerHTML += ("<font color='red'>&nbsp;&nbsp;" + leftMiddleRightStrs[j] +
+                                         " column finalized? " + box.isColumnFinalized(j) + "(expected " +
+                                         colAnswers[j] + ")</font><br>");
+            }
+        }
+    }
+    var percentPass = passCount / (testCases.length * 2) * 100;
+    // Display stats for this group of tests
+    if (percentPass >= 100) { clr = "green"; }
+    else if (percentPass >= 50) { clr = "orange"; }
+    else { clr = "red"; }
+    resultsDIV.innerHTML += "<font color='" + clr + "'>" + percentPass +
+        "% of tests from this group passed</font><br><br>";
+    
+    // Test removing cells from a cell collection
+    TestCollectionRemovals(resultsDIV);
+    
+    // Test getting 3x3 boxes out of a 9x9 puzzle
+    resultsDIV.innerHTML += "3x3 extraction tests:<br>";
+    passCount = 0;
+    var puzzleData =
+    [
+      1,2,3, 4,5,6, 7,8,9,
+      3,2,1, 6,5,4, 9,8,7,
+      2,1,3, 4,6,5, 7,9,8,
+     
+      1,2,3, 4,5,6, 7,8,9,
+      1,2,3, 4,5,6, 7,8,9,
+      1,2,3, 4,5,6, 7,8,9,
+     
+      1,2,3, 7,5,6, 4,8,9,
+      1,2,3, 4,5,6, 7,8,9,
+      3,9,7, 5,4,6, 8,1,2
+    ];
+    var puzzle = new Sudoku9x9(NumsToCells(puzzleData));
+    testCases =
+    [
+    //   row,col expected_cells
+        [ [0,0], [1,2,3,3,2,1,2,1,3] ],
+        [ [0,1], [4,5,6,6,5,4,4,6,5] ],
+        [ [0,2], [7,8,9,9,8,7,7,9,8] ],
+        [ [2,1], [7,5,6,4,5,6,5,4,6] ],
+        [ [2,2], [4,8,9,7,8,9,8,1,2] ]
+    ];
+    ok = true;
+    for (var i = 0; i < testCases.length; i++)
+    {
+        var verify = testCases[i][1];
+        box = puzzle.get3x3(testCases[i][0][0], testCases[i][0][1]);
+        var  j = 0;
+        var func = function(cell)
+        {
+            if (cell != verify[j])
+            {
+                resultsDIV.innerHTML += "<font color='red'>FAIL: 3x3 box cell at index " + j +
+                    ". Expected " + verify[j] + " but got " + cell.toString() + ".</font><br>";
+                ok = false;
+            }
+            j++;
+        };
+        box.forEach(func);
+
+        if (ok)
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: 3x3 box verification (" + (i+1) +
+                " of " + testCases.length + ").</font><br>";
+            passCount++;
+        }
+    }
+    DisplayTestStats(resultsDIV, passCount, testCases.length);
+    
+    // Do tests on 3x3 blocks
+    resultsDIV.innerHTML += "<br>";
+    resultsDIV.innerHTML += Test3x3Blocks();
+    resultsDIV.innerHTML += "<br>";
+    
+    resultsDIV.innerHTML += "<br>Solving logic tests (part 1):<br>";
+    
+    // Construct 3x3 boxes with only 1 cell unknown, and make sure that trySolve solves for last value
+    passCount = 0;
+    testCases = [
+        [1, 2, 3, 4, 0, 6, 7, 8, 9], // missing 5
+        [8, 6, 0, 1, 4, 9, 5, 2, 3], // missing 7
+        [0, 7, 6, 4, 8, 1, 3, 9, 2], // missing 5
+        [0, 9, 2, 3, 5, 6, 4, 7, 8], // missing 1
+        [1, 6, 5, 9, 3, 4, 7, 0, 2]  // missing 8
+    ];
+    for (var i = 0; i < testCases.length; i++)
+    {
+        box = new Sudoku3x3Block(NumsToCells(testCases[i]));
+        var ret = box.trySolve();
+        
+        // Make sure the returned object has a "solved" property
+        if (!ret.hasOwnProperty("solved"))
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: trySolve returned an object that doesn't have a " +
+                "\"solved\" property.</font><br>";
+            continue;
+        }
+        
+        if (ret.solved !== true)
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: trySolve did not return true for a 3x3 box that had " +
+                "8/9 finalized values.</font><br>";
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: trySolve on 3x3 box with 8/9 finalized values " +
+                box.toString() + "</font><br>";
+            
+            if (box.getFinalizedValues().length !== 9)
+            {
+                resultsDIV.innerHTML += "<font color='red'>FAIL: getFinalizedValues().length !== 9 after call to " +
+                    "trySolve on 3x3 box.</font><br>";
+            }
+            else
+            {
+                resultsDIV.innerHTML += "<font color='green'>OK: getFinalizedValues().length === 9 after call to " +
+                    "trySolve on 3x3 box.</font><br>";
+                passCount++;
+            }
+        }
+    }
+    // Display stats for this group of tests
+    DisplayTestStats(resultsDIV, passCount, testCases.length);
+    
+    
+    resultsDIV.innerHTML += "<br>Solving logic tests (part 2):<br>";
+    // Construct 3x3 boxes with multiple cells unknown, and make sure that trySolve leaves us with a list
+    // of possibilities of length equal to number of unknown cells (except of course for cases where 1
+    // cell is unknown, in which case it should solve for that cell).
+    passCount = 0;
+    testCases = [
+        [ [0, 2, 3, 4, 0, 6, 7, 0, 9], 3],
+        [ [8, 6, 0, 1, 0, 9, 5, 0, 0], 4],
+        [ [0, 0, 0, 4, 8, 1, 3, 0, 0], 5],
+        [ [0, 0, 0, 0, 2, 0, 0, 0, 0], 8],
+        [ [0, 0, 0, 0, 0, 0, 0, 0, 0], 9],
+        [ [1, 4, 2, 6, 7, 3, 9, 5, 8], 0],
+        [ [1, 4, 0, 6, 7, 3, 9, 5, 8], 0],
+        [ [0, 5, 6, 7, 8, 2, 3, 4, 0], 2],
+        
+        // Also include some test cases with 2 unknowns shared between 2 cells, and then a third cell that
+        // has one of those 2 possiblities and a 2nd different possibility. In this case it should be
+        // solvable.
+
+        // In this case 2 cells have it narrowed down to 2 and 4. A third cell has it narrowed down to 2,4,
+        // and 5. This 3rd cell is for sure 5, given that the 2 and 4 must be in the other 2 cells. This
+        // means that the attempt to solve should leave us with 2 unsolved cells instead of 3.
+        [ [6, 3, 9, [2,4], 7, [2,4,5], 1, 8, [2,4]], 2],
+                 
+        [ [6, [1,9], 3, 8, 5, 2, [1,9], 4, [1,7,9]], 2]
+    ];
+    for (var i = 0; i < testCases.length; i++)
+    {
+        box = new Sudoku3x3Block(NumsToCells(testCases[i][0]));
+        box.trySolve();
+        if (box.getPossibilities().length !== testCases[i][1])
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: getPossibilities().length !== number of unsolved " +
+                "cells after call to trySolve on 3x3 box.</font><br>";
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: getPossibilities().length === number of unsolved " +
+                "cells (" + testCases[i][1] + ") after call to trySolve on 3x3 box.</font><br>";
+            passCount++;
+        }
+    }
+    // Display stats for this group of tests
+    DisplayTestStats(resultsDIV, passCount, testCases.length);
+}
+
+function AreArraysEqual(arr1, arr2)
+{
+    if (!(arr1 instanceof Array) || !(arr2 instanceof Array))
+    {
+        // We need 2 arrays to be able to compare
+        return false;
+    }
+    
+    if (arr1.length != arr2.length) { return false; }
+    
+    for (var i = 0; i < arr1.length; i++)
+    {
+        // If any 2 elements mismatch, then the arrays are not equal
+        if (arr1[i] !== arr2[i]) { return false; }
+    }
+    return true;
+}
+
+function DisplayTestStats(resultsDIV, passCount, totalCount)
+{
+    resultsDIV.innerHTML += GetTestStatsHTML(passCount, totalCount);
+}
+
+function GetTestStatsHTML(passCount, totalCount)
+{
+    var clr = "black";
+    if (passCount == totalCount) { clr = "green"; }
+    else if (passCount >= (totalCount / 2.0)) { clr = "orange"; }
+    else { clr = "red"; }
+    return "<font color='" + clr + "'>" + (passCount / totalCount * 100) +
+        "% of tests from this group passed</font><br>";
+}
+
+// Takes an array of numerical values and returns a corresponding array of cells.
+// Values in the numbers array are 1 of 3 things and what they are determines how the cell is initialized:
+// 1. Numerical values in the range [1,9] ->
+//    Will have a corresponding cell that is finalized with this value
+//
+// 2. Array of numerical values, each of which must be in the range [1,9] ->
+//    Will have a corresponding cell with these possibilities (non-finalized)
+//
+// 3. Anything else ->
+//    Will have a corresponding cell with possibilities 1-9 (non-finalized)
+function NumsToCells(nums)
+{
+    var cells = new Array(nums.length);
+    for (var i = 0; i < nums.length; i++)
+    {
+        var num = nums[i];
+        cells[i] = new SudokuCell(9);
+        
+        // See if this entry in nums is another array
+        if (num instanceof Array)
+        {
+            // Since the array is expected to have the possible values, we need to
+            // eliminate values in the range [1,9] that AREN'T in the array
+            for (var j = 1; j <= 9; j++)
+            {
+                if (-1 === num.indexOf(j))
+                    cells[i].removePossibility(j);
+            }
+        }
+        
+        // See if it's a numerical value in the range [1,9]
+        else if (typeof num === "number" && num >= 1 && num <= 9)
+        {
+            cells[i].finalizedValue = nums[i];
+        }
+        
+        // Else do nothing because it's already a cell with possibilities 1-9
+    }
+    return cells;
+}
+
+function TestCollectionRemovals(resultsDIV)
+{
+    resultsDIV.innerHTML += "Collection removal tests:<br>";
+
+    var passCount = 0;
+    var cells = NumsToCells([1,2,3,4,5,6,7,8,9]);
+    var coll = new SudokuCellCollection(cells);
+    coll = coll.removeCell(cells[2]);
+    if (coll.length === 8)
+    {
+        resultsDIV.innerHTML += "<font color='green'>OK: Collection length check after removeCell</font><br>";
+        passCount++;
+    }
+    else
+    {
+        resultsDIV.innerHTML += "<font color='red'>FAIL: Collection length check after removeCell (expected " +
+            "8, got " + coll.length + ")</font><br>";
+    }
+    var i = 0;
+    var func = function(cell)
+    {
+        if (cell.isFinalized && cell.finalizedValue >= (i+1))
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: Finalized cell in collection at index " +
+                i + ".</font><br>";
+            passCount++;
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: Non-finalized cell in collection at index " +
+                i + ".</font><br>";
+        }
+        i++;
+    };
+    coll.forEach(func);
+    
+    DisplayTestStats(resultsDIV, passCount, 9);
+    resultsDIV.innerHTML += "<br>";
+}
+
+function TestSudokuCell(resultsDIV)
+{
+    // First check for required types
+    if (window["SudokuCell"] === undefined)
+    {
+        resultsDIV.innerHTML += "<font color='red'>&quot;SudokuCell&quot; undefined<br>" +
+            "This will cause ALL other tests to fail. Define this function before running unit tests<br>" +
+            "0% of tests in this group pass<br>";
+        return;
+    }
+    
+    resultsDIV.innerHTML += "SudokuCell tests (part 1):<br>";
+    
+    var passCount = 0;
+    
+    // Construct a new cell with 9 possible values
+    var cell = new SudokuCell(9);
+    // Create test cases of the form [funcName, funcParams, expectedArrayFrom_getPossibilities]
+    var testCases = [
+        [ "toString", [], [1,2,3,4,5,6,7,8,9] ],
+        [ "removePossibility", [8], [1,2,3,4,5,6,7,9] ],
+        
+        // Re-removes a possibility that's already gone:
+        [ "removePossibility", [8], [1,2,3,4,5,6,7,9] ],
+                     
+        [ "removePossibility", [1], [2,3,4,5,6,7,9] ],
+        [ "removePossibility", [9], [2,3,4,5,6,7] ],
+        [ "removePossibility", [5], [2,3,4,6,7] ],
+        [ "removePossibility", [4], [2,3,6,7] ],
+        [ "removePossibility", [6], [2,3,7] ],
+        [ "removePossibility", [3], [2,7] ],
+        [ "removePossibility", [2], [7] ],
+    ];
+    for (var i = 0; i < testCases.length; i++)
+    {
+        var testCase = testCases[i];
+        
+        // Make sure the cell has this member function
+        if (cell[testCase[0]] === undefined)
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: Cell missing \"" +
+                testCase[0] + "\" member function</font><br>";
+            continue;
+        }
+        
+        // Call the function
+        cell[testCase[0]].apply(cell, testCase[1]);
+        
+        // Check result of cell.getPossibilities()
+        var actual = cell.getPossibilities();
+        if (!AreArraysEqual(actual, testCase[2]))
+        {
+            resultsDIV.innerHTML += "<font color='red'>FAIL: cell.getPossibilities() result is " +
+                actual.toString() + ", but expected is " + testCase[2].toString() + "</font><br>";
+        }
+        else
+        {
+            resultsDIV.innerHTML += "<font color='green'>OK: cell.getPossibilities() result is " +
+                actual.toString() + "</font><br>";
+            passCount++;
+        }
+    }
+    DisplayTestStats(resultsDIV, passCount, testCases.length);
+
+    resultsDIV.innerHTML += "<br>SudokuCell tests (part 2):<br>";
+    
+    // Reset the cell and passCount
+    cell = new SudokuCell(9);
+    passCount = 0;
+    // Make sure it has the necessary properties
+	var neededPropNames = ["isFinalized", "finalizedValue", "removePossibilities"];
+	var currentPropNames = new Array();
+	for (var propName in cell) { currentPropNames.push(propName); }
+    for (var i = 0; i < neededPropNames.length; i++)
+	{
+		if (currentPropNames.indexOf(neededPropNames[i]) === -1)
+		{
+			resultsDIV.innerHTML += "<font color='red'>FAIL: Instantiated cell is missing enumerable \"" +
+				neededPropNames[i] + "\" property<br>0% of tests from this group passed</font><br>";
+			return;
+		}
+		else
+		{
+			resultsDIV.innerHTML += "<font color='green'>OK: Instantiated cell has enumerable \"" + 
+				neededPropNames[i] + "\" property</font><br>";
+		}
+	}
+    
+    // Test setting the finalized value
+    cell.finalizedValue = 2;
+    if (cell.isFinalized !== true)
+    {
+        resultsDIV.innerHTML += "<font color='red'>FAIL: After setting finalizedValue for cell, the isFinalized " +
+        "property is <b>not</b> true.</font><br>";
+    }
+    else
+    {
+        resultsDIV.innerHTML += "<font color='green'>OK: After setting finalizedValue for cell, the isFinalized " +
+            "property is true.</font><br>";
+        passCount++;
+    }
+    
+    // Reconstruct the cell with 9 possible values
+    cell = new SudokuCell(9);
+    // Remove all but one of them
+    cell.removePossibilities([1,2,3,4,6,7,8,9]);
+    // Ensure that the cell has a finalized value and that it's 5
+    if (cell.isFinalized !== true || cell.finalizedValue != 5)
+    {
+        resultsDIV.innerHTML += "<font color='red'>FAIL: After removing all but one possibility for the cell, either " +
+            "the isFinalized property was <b>not</b> true and/or the finalizedValue property was incorrect.</font><br>";
+    }
+    else
+    {
+        resultsDIV.innerHTML += "<font color='green'>OK: removePossibilities test</font><br>";
+        passCount++;
+    }
+    // Also ensure that toString() gives us "5"
+    if (cell.toString() !== "5")
+    {
+        resultsDIV.innerHTML += "<font color='red'>FAIL: Finalized cell toString() value was incorrect.</font><br>";
+    }
+    else
+    {
+        resultsDIV.innerHTML += "<font color='green'>OK: Finalized cell toString() value</font><br>";
+        passCount++;
+    }
+    DisplayTestStats(resultsDIV, passCount, 3);
+}
+
+// Returns an HTML string with information about the test results
+function Test3x3Blocks()
+{
+    var resStr = "3x3 block tests:<br>";
+    
+    // Make sure the type exists first
+    var typeName = "Sudoku3x3Block";
+    if (window[typeName] === undefined)
+    {
+        resStr += "<font color='red'>FAIL: Missing type \"" + typeName +
+            "\"<br>0% of tests from this group passed</font><br>";
+        return resStr;
+    }
+    
+    // Each test case is [ 3x3 contents, funcName, funcParamsArray, expectedResult ]
+    var testCases = [
+        [ [1, 2, 3, 4, 5, 6, 7, 8, 9], "getPossibilitiesOnlyAvailableOnColumn", [0], [1,4,7] ],
+        [ [[1,4,7], 2, 3, [1,4,7], 5, 6, [1,4,7], 8, 9], "getPossibilitiesOnlyAvailableOnColumn", [0], [1,4,7] ],
+        [ [1, 2, 3, 4, 5, 6, 7, 8, 9], "getPossibilitiesOnlyAvailableOnRow", [2], [7,8,9] ],
+    ];
+    var passCount = 0;
+    for (var i = 0; i < testCases.length; i++)
+    {
+        var testCase = testCases[i];
+        
+        // Create the block
+        var block = new Sudoku3x3Block(NumsToCells(testCase[0]));
+        
+        // Make sure it has the function
+        if (block[testCase[1]] === undefined)
+        {
+            resStr += "<font color='red'>FAIL: Missing \"" + testCase[1] +
+                "\" function</font><br>";
+            continue;
+        }
+        
+        // Execute the function
+        var actual = block[testCase[1]].apply(block, testCase[2]);
+        
+        // Compare results
+        if (actual === undefined)
+        {
+            resStr += "<font color='red'>FAIL: Result from \"" + testCase[1] +
+                "\" call was undefined</font><br>";
+        }
+        else if (testCase[3] instanceof Array)
+        {
+            if (!AreArraysEqual(actual, testCase[3]))
+            {
+                resStr += "<font color='red'>FAIL: " + testCase[1] +
+                    "(" + testCase[2] + ") returned " + actual.toString() +
+                    ", but expected was " + testCase[3].toString() + "</font><br>";
+            }
+            else
+            {
+                resStr += "<font color='green'>OK: " + testCase[1] +
+                    "(" + testCase[2] + ") returned " + actual.toString() + "</font><br>";
+                passCount++;
+            }
+        }
+    }
+    
+    return resStr + GetTestStatsHTML(passCount, testCases.length);
+}
+
+</script>
+
+<body onload="AllTests()">
+    <div id="resultsDIV"></div>
+</body>
+
+</html>
